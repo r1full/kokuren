@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>架空世界の時計</title>
+  <title>架空世界の時計（電暦）</title>
   <style>
     body {
       background-color: #121212;
@@ -25,37 +25,50 @@
   <div id="clock">読み込み中...</div>
 
   <script>
-    function updateClock() {
+    const baseTime = new Date('2025-07-13T00:00:00');
+    const REAL_SECONDS_PER_FICTIONAL_SECOND = 1 / 360; // 約0.002777...秒 = 1現実秒あたり360架空秒
+
+    function getFictionalTime() {
       const now = new Date();
+      const elapsedMs = now - baseTime;
 
-      // 現在の現実世界の時刻（午前0時を基準）
-      const msInDay = 24 * 60 * 60 * 1000;
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const elapsedMs = now - startOfDay;
+      const elapsedRealSeconds = elapsedMs / 1000;
+      const totalFictionalSeconds = elapsedRealSeconds * 360;
 
-      // 現実1日 = 架空1年 = 360日 → 1日 = 24時間 = 360 * 24時間の時間に相当
-      const totalFictionalDays = (elapsedMs / msInDay) * 360;
+      const fictionalTotalDays = Math.floor(totalFictionalSeconds / 86400);
+      const fictionalYear = Math.floor(fictionalTotalDays / 360) + 1;
+      const dayOfYear = fictionalTotalDays % 360;
 
-      const fictionalYear = now.getFullYear(); // 年を合わせるために現実の年を使用
-      const fictionalDayTotal = Math.floor(totalFictionalDays);
-      const fictionalHour = Math.floor((totalFictionalDays - fictionalDayTotal) * 24);
-      const fictionalMinute = Math.floor(((totalFictionalDays * 24) % 1) * 60);
-      const fictionalSecond = Math.floor((((totalFictionalDays * 24 * 60) % 1) * 60));
+      const fictionalMonth = Math.floor(dayOfYear / 30) + 1;
+      const fictionalDay = (dayOfYear % 30) + 1;
 
-      // 架空の月と日（30日ごとに1か月）
-      const fictionalMonth = Math.floor(fictionalDayTotal / 30) + 1;
-      const fictionalDay = (fictionalDayTotal % 30) + 1;
+      const secondsInDay = totalFictionalSeconds % 86400;
+      const fictionalHour = Math.floor(secondsInDay / 3600);
+      const fictionalMinute = Math.floor((secondsInDay % 3600) / 60);
+      const fictionalSecond = Math.floor(secondsInDay % 60);
 
-      // 表示フォーマット
+      return {
+        year: fictionalYear,
+        month: fictionalMonth,
+        day: fictionalDay,
+        hour: fictionalHour,
+        minute: fictionalMinute,
+        second: fictionalSecond
+      };
+    }
+
+    function displayTime() {
+      const t = getFictionalTime();
       const pad = (n) => n.toString().padStart(2, '0');
 
       document.getElementById("clock").innerHTML =
-        `架空世界 ${fictionalYear}年 ${pad(fictionalMonth)}月 ${pad(fictionalDay)}日<br>` +
-        `${pad(fictionalHour)}:${pad(fictionalMinute)}:${pad(fictionalSecond)}`;
+        `電暦 ${t.year}年 ${pad(t.month)}月 ${pad(t.day)}日<br>` +
+        `${pad(t.hour)}:${pad(t.minute)}:${pad(t.second)}`;
     }
 
-    setInterval(updateClock, 1000); // 毎秒更新
-    updateClock(); // 初期表示
+    // 架空1秒ごとに更新（1/360秒 ≒ 2.78ms ごと）
+    setInterval(displayTime, 1000 / 360);
+    displayTime();
   </script>
 </body>
 </html>
