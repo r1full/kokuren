@@ -5,34 +5,81 @@
   <title>架空世界の時計（電暦）</title>
   <style>
     body {
-      background-color: #333333;
+      background-color: #333;
       color: #FFC800;
       font-family: 'Segoe UI', sans-serif;
-      text-align: center;
-      margin:0 auto;
-      font-size: 5em;
+      margin: 0;
+      display: flex;
+      height: 100vh;
+    }
+    .container {
+      flex: 1;
+      padding: 30px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    .left {
+      border-right: 2px solid #555;
+    }
+    .section {
+      margin-bottom: 30px;
     }
     #clock {
-      background: #333333;
-      margin: 30px;
+      background: #333;
       padding: 30px;
       border-radius: 20px;
       display: inline-block;
       box-shadow: 0 0 20px #FFC800;
+      font-size: 2em;
+    }
+    input, button {
+      font-size: 1em;
+      padding: 8px;
+      margin: 5px;
+      background-color: #222;
+      color: #FFC800;
+      border: 1px solid #888;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #555;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div id="clock">読み込み中...</div>
+  <!-- 左側：現在の電暦＋変換 -->
+  <div class="container left">
+    <div id="clock" class="section">読み込み中...</div>
+
+    <div class="section">
+      <label for="realTimeInput">現実時間を入力：</label><br>
+      <input type="datetime-local" id="realTimeInput">
+      <button onclick="convertRealTime()">変換</button>
+      <button onclick="clearConvertedResults()">リセット</button>
+      <div id="convertedResults"></div>
+    </div>
+  </div>
+
+  <!-- 右側：差分表示 -->
+  <div class="container right">
+    <div class="section">
+      <label for="startTime">開始の現実時間：</label><br>
+      <input type="datetime-local" id="startTime"><br>
+      <label for="endTime">終了の現実時間：</label><br>
+      <input type="datetime-local" id="endTime"><br>
+      <button onclick="calculateDifference()">差を計算</button>
+      <button onclick="clearDifference()">リセット</button>
+      <div id="differenceResult"></div>
+    </div>
+  </div>
 
   <script>
-    const baseTime = new Date('2025-07-13T00:00:00');
-    const REAL_SECONDS_PER_FICTIONAL_SECOND = 1 / 360; // 約0.002777...秒 = 1現実秒あたり360架空秒
+    const baseTime = new Date('2025-07-13T00:00:00'); // 電暦元年 元日（= 架空世界の日曜日）
+    const weekNames = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
 
-    function getFictionalTime() {
-      const now = new Date();
-      const elapsedMs = now - baseTime;
-
+    function getFictionalTimeFromDate(date) {
+      const elapsedMs = date - baseTime;
       const elapsedRealSeconds = elapsedMs / 1000;
       const totalFictionalSeconds = elapsedRealSeconds * 360;
 
@@ -42,6 +89,8 @@
 
       const fictionalMonth = Math.floor(dayOfYear / 30) + 1;
       const fictionalDay = (dayOfYear % 30) + 1;
+
+      const weekday = weekNames[fictionalTotalDays % 7]; // 日曜始まり
 
       const secondsInDay = totalFictionalSeconds % 86400;
       const fictionalHour = Math.floor(secondsInDay / 3600);
@@ -54,20 +103,80 @@
         day: fictionalDay,
         hour: fictionalHour,
         minute: fictionalMinute,
-        second: fictionalSecond
+        second: fictionalSecond,
+        weekday: weekday,
+        totalSeconds: totalFictionalSeconds
       };
+    }
+
+    function getFictionalTime() {
+      return getFictionalTimeFromDate(new Date());
+    }
+
+    function pad(n) {
+      return n.toString().padStart(2, '0');
     }
 
     function displayTime() {
       const t = getFictionalTime();
-      const pad = (n) => n.toString().padStart(2, '0');
-
       document.getElementById("clock").innerHTML =
-        `電暦 ${t.year}年 ${pad(t.month)}月 ${pad(t.day)}日<br>` +
+        `電暦 ${t.year}年 ${pad(t.month)}月 ${pad(t.day)}日 (${t.weekday})<br>` +
         `${pad(t.hour)}:${pad(t.minute)}:${pad(t.second)}`;
     }
 
-    // 架空1秒ごとに更新（1/360秒 ≒ 2.78ms ごと）
+    function convertRealTime() {
+      const input = document.getElementById("realTimeInput").value;
+      if (!input) return;
+
+      const realDate = new Date(input);
+      const t = getFictionalTimeFromDate(realDate);
+
+      const resultDiv = document.getElementById("convertedResults");
+      const result = document.createElement("div");
+      result.innerHTML =
+        `⇒ 電暦 ${t.year}年 ${pad(t.month)}月 ${pad(t.day)}日 (${t.weekday}) ` +
+        `${pad(t.hour)}:${pad(t.minute)}:${pad(t.second)}`;
+      resultDiv.appendChild(result);
+    }
+
+    function clearConvertedResults() {
+      document.getElementById("convertedResults").innerHTML = "";
+    }
+
+    function calculateDifference() {
+      const start = document.getElementById("startTime").value;
+      const end = document.getElementById("endTime").value;
+      if (!start || !end) return;
+
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      const diffRealSeconds = (endDate - startDate) / 1000;
+      const diffFictionalSeconds = diffRealSeconds * 360;
+
+      let total = Math.floor(diffFictionalSeconds);
+
+      const years = Math.floor(total / (360 * 86400));
+      total %= 360 * 86400;
+      const months = Math.floor(total / (30 * 86400));
+      total %= 30 * 86400;
+      const days = Math.floor(total / 86400);
+      total %= 86400;
+      const hours = Math.floor(total / 3600);
+      total %= 3600;
+      const minutes = Math.floor(total / 60);
+      const seconds = total % 60;
+
+      const result = document.getElementById("differenceResult");
+      result.innerHTML =
+        `現実時間の差：${Math.floor(diffRealSeconds)} 秒<br>` +
+        `架空時間の差：${years}年 ${months}ヶ月 ${days}日 ` +
+        `${pad(hours)}時間 ${pad(minutes)}分 ${pad(seconds)}秒`;
+    }
+
+    function clearDifference() {
+      document.getElementById("differenceResult").innerHTML = "";
+    }
+
     setInterval(displayTime, 1000 / 360);
     displayTime();
   </script>
