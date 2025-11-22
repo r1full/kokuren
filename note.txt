@@ -1,4 +1,5 @@
-⁂name{testApp}
-⁂type{iframe,fullScreen}
-⁂iframePath = https://example.com/
+⁂appName{testApp}
+⁂windowType{default}
+⁂appType{iframe}
+⁂iframePath{https://example.com/}
 ⁂c/This is a testApp
