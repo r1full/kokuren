@@ -1,5 +1,5 @@
 ⁂appName{testApp}
 ⁂windowType{default}
 ⁂appType{iframe}
-⁂iframePath{https://example.com/}
+⁂iframePath{https://extensions.turbowarp.org/hello.txt}
 ⁂c/This is a testApp
